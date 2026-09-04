@@ -39,7 +39,7 @@ enum Command {
     Add(commands::Add),
     /// removes a config dir from dotfiles or config
     Remove(commands::Remove),
-    // Install(),
+    Install(commands::Install),
     // Uninstall(),
     // Backup()
 }
@@ -72,6 +72,7 @@ async fn main() -> Result<()> {
     match &options.command {
         Command::Add(args) => args.exec(&options).await?,
         Command::Remove(args) => args.exec(&options).await?,
+        Command::Install(args) => args.exec(&options).await?,
     }
 
     Ok(())

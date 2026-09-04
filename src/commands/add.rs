@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use std::path::PathBuf;
 
 use crate::CommandHandler;
@@ -10,21 +10,21 @@ pub struct Add {
 }
 
 impl Add {
-    pub async fn exec(&self, cli: &CommandHandler) -> Result<()> {
+    pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
         let f = &self.file;
-        let dotfiles = &cli.dotfiles;
-        let config_dir = &cli.config_dir;
+        let dotfiles = &handler.dotfiles;
+        let config_dir = &handler.config_dir;
 
         if !f.is_dir() {
-            anyhow::bail!("{:?} is not a valid dir", f);
+            return Err(anyhow!("{:?} is not a valid dir", f));
         }
 
         let f_name = f.file_name().context("Unable to get file name")?;
-        if f.parent().context("Unable to get file parent")? != config_dir {
-            anyhow::bail!(
+        if !f.starts_with(config_dir) {
+            return Err(anyhow!(
                 "{} is not a child of config directory",
                 f_name.to_string_lossy()
-            );
+            ));
         }
 
         let link = dotfiles.join(f_name);
@@ -39,7 +39,9 @@ impl Add {
         let target = pathdiff::diff_paths(link.canonicalize()?, config_dir)
             .context("unable to get relative path")?;
 
-        tokio::fs::symlink(target, config_dir.join(f_name))
+        let link = config_dir.join(f_name);
+
+        tokio::fs::symlink(target, link)
             .await
             .context("Symlink err")?;
 

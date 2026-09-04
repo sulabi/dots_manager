@@ -13,10 +13,10 @@ pub struct Remove {
 }
 
 impl Remove {
-    pub async fn exec(&self, cli: &CommandHandler) -> Result<()> {
+    pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
         let f = &self.file;
 
-        let config_dir = &cli.config_dir;
+        let config_dir = &handler.config_dir;
         let config_file = config_dir.join(f);
 
         if !config_file.is_dir() {
