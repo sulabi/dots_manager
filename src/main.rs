@@ -6,13 +6,11 @@ mod commands;
 
 #[derive(clap::Parser)]
 pub struct CommandHandler {
-    // #[arg(short, long, default_value = "./dotfiles")]
-    // dotfiles: PathBuf,
     #[command(subcommand)]
     command: Command,
 
     #[arg(short, long, default_value = "./dotfiles")]
-    pub dotfiles: PathBuf,
+    dotfiles: PathBuf,
 
     #[arg(name = "type", default_value = "UserConfig")]
     config_type: ConfigType,
@@ -39,8 +37,9 @@ enum Command {
     Add(commands::Add),
     /// removes a config dir from dotfiles or config
     Remove(commands::Remove),
+    /// symlinks current dotfiles folders into config
     Install(commands::Install),
-    // Uninstall(),
+    /// backs up current dotfiles folder into a tarball
     Backup(commands::Backup),
 }
 
