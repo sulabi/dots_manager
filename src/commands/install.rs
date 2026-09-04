@@ -46,7 +46,7 @@ impl Install {
             for entry in handler
                 .dotfiles
                 .read_dir()
-                .context("Failed to read dotfiles dir:")?
+                .with_context(|| format!("Failed to read dotfiles dir: {:?}", handler.dotfiles))?
                 .flatten()
             {
                 let path = entry.path();
