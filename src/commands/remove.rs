@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use crate::Cli;
+use crate::CommandHandler;
 use anyhow::{Context, Result, anyhow};
 
 #[derive(clap::Parser)]
-pub struct RemoveOptions {
+pub struct Remove {
     #[arg(short, long)]
     file: PathBuf,
 
@@ -12,11 +12,11 @@ pub struct RemoveOptions {
     from_dots: bool,
 }
 
-impl RemoveOptions {
-    pub async fn operate(&self, cli: &Cli) -> Result<()> {
+impl Remove {
+    pub async fn exec(&self, cli: &CommandHandler) -> Result<()> {
         let f = &self.file;
 
-        let config_dir = &cli.config_dir()?;
+        let config_dir = &cli.config_dir;
         let config_file = config_dir.join(f);
 
         if !config_file.is_dir() {

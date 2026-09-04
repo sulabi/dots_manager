@@ -1,19 +1,19 @@
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 
-use crate::Cli;
+use crate::CommandHandler;
 
 #[derive(clap::Parser)]
-pub struct AddOptions {
+pub struct Add {
     #[arg(short, long)]
     file: PathBuf,
 }
 
-impl AddOptions {
-    pub async fn operate(&self, cli: &Cli) -> Result<()> {
+impl Add {
+    pub async fn exec(&self, cli: &CommandHandler) -> Result<()> {
         let f = &self.file;
         let dotfiles = &cli.dotfiles;
-        let config_dir = &cli.config_dir()?;
+        let config_dir = &cli.config_dir;
 
         if !f.is_dir() {
             anyhow::bail!("{:?} is not a valid dir", f);
