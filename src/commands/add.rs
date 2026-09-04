@@ -1,7 +1,10 @@
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Context, Result};
 use std::path::PathBuf;
 
-use crate::CommandHandler;
+use crate::{
+    CommandHandler,
+    commands::{PathExt, PathValidate},
+};
 
 #[derive(clap::Parser)]
 pub struct Add {
@@ -11,34 +14,18 @@ pub struct Add {
 
 impl Add {
     pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
-        let f = &self.file;
+        let f = &self.file.ensure_dir()?;
         let dotfiles = &handler.dotfiles;
         let config_dir = &handler.config_dir;
 
-        if !f.is_dir() {
-            return Err(anyhow!("{:?} is not a valid dir", f));
-        }
-
         let f_name = f.file_name().context("Unable to get file name")?;
-        if !f.starts_with(config_dir) {
-            return Err(anyhow!(
-                "{} is not a child of config directory",
-                f_name.to_string_lossy()
-            ));
-        }
+
+        f.ensure_child(config_dir)?;
 
         let link = dotfiles.join(f_name);
-        tokio::fs::rename(f, &link).await.with_context(|| {
-            format!(
-                "Unable to move file {} into {:?}",
-                f_name.to_string_lossy(),
-                dotfiles
-            )
-        })?;
+        f.move_dir(link.as_path()).await?;
 
-        let target = pathdiff::diff_paths(link.canonicalize()?, config_dir)
-            .context("unable to get relative path")?;
-
+        let target = link.relative_path(config_dir)?;
         let link = config_dir.join(f_name);
 
         tokio::fs::symlink(target, link)

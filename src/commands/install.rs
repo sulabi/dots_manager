@@ -1,7 +1,10 @@
-use anyhow::{Context, Result, anyhow};
-use std::path::PathBuf;
+use anyhow::{Context, Result};
+use std::path::{Path, PathBuf};
 
-use crate::CommandHandler;
+use crate::{
+    CommandHandler,
+    commands::{PathExt, PathValidate},
+};
 
 #[derive(clap::Parser)]
 pub struct Install {
@@ -13,30 +16,20 @@ pub struct Install {
 }
 
 impl Install {
-    async fn install(&self, file: &PathBuf, handler: &CommandHandler) -> Result<()> {
-        let f = file;
+    async fn install(&self, file: &Path, handler: &CommandHandler) -> Result<()> {
         let dotfiles = &handler.dotfiles;
         let config_dir = &handler.config_dir;
+        let f = file.ensure_dir()?.ensure_child(dotfiles)?;
 
-        if !f.is_dir() {
-            return Err(anyhow!("{:?} is not a valid dir", f));
-        }
-
-        if !f.starts_with(dotfiles) {
-            println!("{:?} parent = {:?}", f, f.parent());
-            return Err(anyhow!("{:?} is not in a dotfiles folder", f));
-        }
-
-        let target = pathdiff::diff_paths(f.canonicalize()?, config_dir)
-            .context("unable to get relative path")?;
+        let target = f.relative_path(config_dir)?;
         let f_name = f.file_name().context("Failed to get file name")?;
 
         let link = config_dir.join(f_name);
 
         if !link.is_symlink() {
-            tokio::fs::symlink(target, link)
+            tokio::fs::symlink(&target, &link)
                 .await
-                .context("Symlink err")?;
+                .with_context(|| format!("Symlink error on {:?} to {:?}", target, link))?;
         }
 
         Ok(())
@@ -44,9 +37,7 @@ impl Install {
 
     pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
         if let Some(f) = &self.file {
-            if !f.is_dir() {
-                return Err(anyhow!("{:?} is not a valid dir", f));
-            }
+            let f = f.ensure_dir()?;
 
             self.install(f, handler).await?
         }

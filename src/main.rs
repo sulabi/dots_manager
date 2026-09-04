@@ -41,7 +41,7 @@ enum Command {
     Remove(commands::Remove),
     Install(commands::Install),
     // Uninstall(),
-    // Backup()
+    Backup(commands::Backup),
 }
 
 // chage and finish this
@@ -73,6 +73,7 @@ async fn main() -> Result<()> {
         Command::Add(args) => args.exec(&options).await?,
         Command::Remove(args) => args.exec(&options).await?,
         Command::Install(args) => args.exec(&options).await?,
+        Command::Backup(args) => args.exec(&options).await?,
     }
 
     Ok(())

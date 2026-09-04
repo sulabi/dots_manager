@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use crate::CommandHandler;
-use anyhow::{Context, Result, anyhow};
+use crate::{CommandHandler, commands::PathValidate};
+use anyhow::{Context, Result};
 
 #[derive(clap::Parser)]
 pub struct Remove {
@@ -14,17 +14,11 @@ pub struct Remove {
 
 impl Remove {
     pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
-        let f = &self.file;
+        let f = &self.file.ensure_dir()?;
 
         let config_dir = &handler.config_dir;
         let config_file = config_dir.join(f);
-
-        if !config_file.is_dir() {
-            return Err(anyhow!("{:?} is not a set config file", f));
-        }
-        if !config_file.is_symlink() {
-            return Err(anyhow!("{:?} is not a symlink, won't delete", f));
-        }
+        config_file.ensure_dir()?.ensure_symlink()?;
 
         tokio::fs::remove_dir_all(&config_file)
             .await
