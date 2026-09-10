@@ -14,7 +14,7 @@ pub struct Add {
 
 impl Add {
     pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
-        let f = &self.file.ensure_dir()?;
+        let f = &self.file.ensure_exists()?;
         let dotfiles = &handler.dotfiles;
         let config_dir = &handler.config_dir;
 

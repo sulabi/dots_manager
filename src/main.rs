@@ -41,6 +41,8 @@ enum Command {
     Install(commands::Install),
     /// backs up current dotfiles folder into a tarball
     Backup(commands::Backup),
+    /// restores dotfiles from backup tarball but doesn't install
+    Restore(commands::Restore),
 }
 
 // chage and finish this
@@ -49,6 +51,7 @@ enum ConfigType {
     #[value(name = "UserConfig")]
     UserConfig,
 }
+
 impl Display for ConfigType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.to_possible_value()
@@ -69,11 +72,10 @@ async fn main() -> Result<()> {
     }
 
     match &options.command {
-        Command::Add(args) => args.exec(&options).await?,
-        Command::Remove(args) => args.exec(&options).await?,
-        Command::Install(args) => args.exec(&options).await?,
-        Command::Backup(args) => args.exec(&options).await?,
+        Command::Add(args) => args.exec(&options).await,
+        Command::Remove(args) => args.exec(&options).await,
+        Command::Install(args) => args.exec(&options).await,
+        Command::Backup(args) => args.exec(&options).await,
+        Command::Restore(args) => args.exec(&options).await,
     }
-
-    Ok(())
 }

@@ -3,16 +3,13 @@ use std::path::{Path, PathBuf};
 
 use crate::{
     CommandHandler,
-    commands::{PathExt, PathValidate},
+    commands::{PathExt, PathValidate, get_dots},
 };
 
 #[derive(clap::Parser)]
 pub struct Install {
-    #[arg(short, long, conflicts_with = "all")]
-    file: Option<PathBuf>,
-
     #[arg(short, long)]
-    all: bool,
+    file: Option<PathBuf>,
 }
 
 impl Install {
@@ -42,17 +39,17 @@ impl Install {
             self.install(f, handler).await?
         }
 
-        if self.all {
-            for entry in handler
-                .dotfiles
-                .read_dir()
-                .with_context(|| format!("Failed to read dotfiles dir: {:?}", handler.dotfiles))?
-                .flatten()
-            {
-                let path = entry.path();
-                if path.is_dir() {
-                    self.install(&path, handler).await?
-                }
+        let files = get_dots(&handler.dotfiles)?;
+
+        for path in files {
+            if path.is_dir() {
+                // TODO: make a better terminal output
+                println!(
+                    "installing -> {:?}",
+                    path.file_name().context("Failed to get file name")?
+                );
+
+                self.install(&path, handler).await?
             }
         }
 

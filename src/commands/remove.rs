@@ -10,6 +10,9 @@ pub struct Remove {
 
     #[arg(long, default_value_t = false)]
     from_dots: bool,
+
+    #[arg(short, long)]
+    all: bool,
 }
 
 impl Remove {
@@ -20,16 +23,17 @@ impl Remove {
         let config_file = config_dir.join(f);
         config_file.ensure_dir()?.ensure_symlink()?;
 
-        tokio::fs::remove_dir_all(&config_file)
-            .await
-            .context("Unable to remove symlink")?;
-
         if self.from_dots {
-            let link = config_file.read_link().context("Failed to read link")?;
-            tokio::fs::remove_dir_all(link)
+            let absolute = config_file.canonicalize()?;
+
+            tokio::fs::remove_dir_all(absolute)
                 .await
                 .context("Unable to remove original config")?;
         }
+
+        tokio::fs::remove_dir_all(&config_file)
+            .await
+            .context("Unable to remove symlink")?;
 
         Ok(())
     }
