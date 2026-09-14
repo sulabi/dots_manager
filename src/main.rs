@@ -1,6 +1,9 @@
 use anyhow::{Context, Result};
+use appcfg::{Config, ConfigDirectory};
 use clap::{Parser, ValueEnum};
 use std::{fmt::Display, path::PathBuf};
+
+use crate::commands::DotsConfig;
 
 mod commands;
 
@@ -9,25 +12,19 @@ pub struct CommandHandler {
     #[command(subcommand)]
     command: Command,
 
-    #[arg(short, long, default_value = "./dotfiles")]
-    dotfiles: PathBuf,
+    #[arg(short, long)]
+    dotfiles: Option<PathBuf>,
 
     #[arg(name = "type", default_value = "UserConfig")]
     config_type: ConfigType,
-
-    #[arg(skip)]
-    config_dir: PathBuf,
 }
 
 impl CommandHandler {
-    fn init() -> Result<Self> {
-        let mut handler = Self::parse();
-
-        handler.config_dir = match handler.config_type {
-            ConfigType::UserConfig => dirs::config_dir().context("Could not get config dir")?,
-        };
-
-        Ok(handler)
+    fn resolve_dotfiles(&self, config: &Config) -> Result<PathBuf> {
+        config
+            .read()
+            .map(|DotsConfig { dotfiles }| dotfiles)
+            .context("No dotfiles path set")
     }
 }
 
@@ -43,6 +40,8 @@ enum Command {
     Backup(commands::Backup),
     /// restores dotfiles from backup tarball but doesn't install
     Restore(commands::Restore),
+
+    Init(commands::Init),
 }
 
 // chage and finish this
@@ -61,21 +60,42 @@ impl Display for ConfigType {
     }
 }
 
+struct CommandArgs {
+    dotfiles: PathBuf,
+    config_dir: PathBuf,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    let options = CommandHandler::init()?;
+    let options = CommandHandler::parse();
+    let config = Config::new(ConfigDirectory::System("dots_manager"))?;
 
-    if !options.dotfiles.is_dir() {
-        tokio::fs::create_dir(&options.dotfiles)
+    if let Command::Init(args) = &options.command {
+        return args.exec(&config);
+    }
+
+    let dotfiles = options.resolve_dotfiles(&config)?;
+
+    if !dotfiles.is_dir() {
+        tokio::fs::create_dir_all(&dotfiles)
             .await
             .context("Unable to create dotfiles directory")?;
     }
 
+    let command_args = CommandArgs {
+        dotfiles,
+        config_dir: match options.config_type {
+            ConfigType::UserConfig => dirs::config_dir().context("Could not get config dir")?,
+        },
+    };
+
     match &options.command {
-        Command::Add(args) => args.exec(&options).await,
-        Command::Remove(args) => args.exec(&options).await,
-        Command::Install(args) => args.exec(&options).await,
-        Command::Backup(args) => args.exec(&options).await,
-        Command::Restore(args) => args.exec(&options).await,
+        Command::Add(args) => args.exec(&command_args).await,
+        Command::Remove(args) => args.exec(&command_args).await,
+        Command::Install(args) => args.exec(&command_args).await,
+        Command::Backup(args) => args.exec(&command_args).await,
+        Command::Restore(args) => args.exec(&command_args).await,
+
+        Command::Init(_) => unreachable!(),
     }
 }

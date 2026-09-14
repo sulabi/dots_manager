@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{CommandHandler, commands::PathValidate};
+use crate::{CommandArgs, commands::PathValidate};
 use anyhow::{Context, Result};
 
 #[derive(clap::Parser)]
@@ -16,10 +16,10 @@ pub struct Remove {
 }
 
 impl Remove {
-    pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
+    pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
         let f = &self.file.ensure_dir()?;
 
-        let config_dir = &handler.config_dir;
+        let config_dir = &args.config_dir;
         let config_file = config_dir.join(f);
         config_file.ensure_dir()?.ensure_symlink()?;
 

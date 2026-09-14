@@ -1,5 +1,6 @@
 mod add;
 mod backup;
+mod init;
 mod install;
 mod remove;
 mod restore;
@@ -10,6 +11,7 @@ use std::path::{Path, PathBuf};
 
 pub use add::*;
 pub use backup::*;
+pub use init::*;
 pub use install::*;
 pub use remove::*;
 pub use restore::*;

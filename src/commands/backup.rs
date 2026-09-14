@@ -5,7 +5,7 @@ use std::fs::File;
 use std::path::PathBuf;
 
 use crate::commands::get_dots;
-use crate::{CommandHandler, commands::PathValidate};
+use crate::{CommandArgs, commands::PathValidate};
 
 #[derive(clap::Parser)]
 pub struct Backup {
@@ -19,8 +19,8 @@ impl Backup {
         chrono::Local::now().format("%d%m%Y-%H%M%S")
     }
 
-    pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
-        let dotfiles = &handler.dotfiles;
+    pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
+        let dotfiles = &args.dotfiles;
 
         let out_path = if let Some(f) = &self.file {
             f.ensure_dir()?.ensure_child(dotfiles)?

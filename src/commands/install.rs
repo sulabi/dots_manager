@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
 use crate::{
-    CommandHandler,
+    CommandArgs,
     commands::{PathExt, PathValidate, get_dots},
 };
 
@@ -13,9 +13,9 @@ pub struct Install {
 }
 
 impl Install {
-    async fn install(&self, file: &Path, handler: &CommandHandler) -> Result<()> {
-        let dotfiles = &handler.dotfiles;
-        let config_dir = &handler.config_dir;
+    async fn install(&self, file: &Path, args: &CommandArgs) -> Result<()> {
+        let dotfiles = &args.dotfiles;
+        let config_dir = &args.config_dir;
         let f = file.ensure_dir()?.ensure_child(dotfiles)?;
 
         let target = f.relative_path(config_dir)?;
@@ -32,14 +32,14 @@ impl Install {
         Ok(())
     }
 
-    pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
+    pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
         if let Some(f) = &self.file {
             let f = f.ensure_dir()?;
 
-            self.install(f, handler).await?
+            self.install(f, args).await?
         }
 
-        let files = get_dots(&handler.dotfiles)?;
+        let files = get_dots(&args.dotfiles)?;
 
         for path in files {
             if path.is_dir() {
@@ -49,7 +49,7 @@ impl Install {
                     path.file_name().context("Failed to get file name")?
                 );
 
-                self.install(&path, handler).await?
+                self.install(&path, args).await?
             }
         }
 

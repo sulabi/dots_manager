@@ -4,7 +4,7 @@ use std::{ffi::OsStr, fs::File, path::PathBuf};
 use tar::Archive;
 
 use crate::{
-    CommandHandler,
+    CommandArgs,
     commands::{PathValidate, get_dots, list_dir},
 };
 
@@ -15,8 +15,8 @@ pub struct Restore {
 }
 
 impl Restore {
-    pub async fn exec(&self, handler: &CommandHandler) -> Result<()> {
-        let dotfiles = &handler.dotfiles;
+    pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
+        let dotfiles = &args.dotfiles;
 
         dotfiles.ensure_dir()?;
 
