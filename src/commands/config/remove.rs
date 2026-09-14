@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use crate::{CommandArgs, commands::PathValidate};
+use super::CommandArgs;
+use crate::commands::PathValidate;
 use anyhow::{Context, Result};
 
 #[derive(clap::Parser)]

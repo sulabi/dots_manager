@@ -4,8 +4,10 @@ use flate2::{Compression, write::GzEncoder};
 use std::fs::File;
 use std::path::PathBuf;
 
+use crate::commands::PathValidate;
 use crate::commands::get_dots;
-use crate::{CommandArgs, commands::PathValidate};
+
+use super::CommandArgs;
 
 #[derive(clap::Parser)]
 pub struct Backup {

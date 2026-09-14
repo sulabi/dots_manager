@@ -3,10 +3,8 @@ use flate2::read::GzDecoder;
 use std::{ffi::OsStr, fs::File, path::PathBuf};
 use tar::Archive;
 
-use crate::{
-    CommandArgs,
-    commands::{PathValidate, get_dots, list_dir},
-};
+use super::CommandArgs;
+use crate::commands::{PathValidate, get_dots, list_dir};
 
 #[derive(clap::Parser)]
 pub struct Restore {

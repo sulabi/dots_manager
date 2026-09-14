@@ -1,10 +1,9 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
-use crate::{
-    CommandArgs,
-    commands::{PathExt, PathValidate, get_dots},
-};
+use crate::commands::{PathExt, PathValidate, get_dots};
+
+use super::CommandArgs;
 
 #[derive(clap::Parser)]
 pub struct Install {

@@ -1,10 +1,8 @@
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 
-use crate::{
-    CommandArgs,
-    commands::{PathExt, PathValidate},
-};
+use super::CommandArgs;
+use crate::commands::{PathExt, PathValidate};
 
 #[derive(clap::Parser)]
 pub struct Add {
@@ -14,7 +12,7 @@ pub struct Add {
 
 impl Add {
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
-        let f = &self.file.ensure_exists()?;
+        let f = self.file.ensure_exists()?;
         let dotfiles = &args.dotfiles;
         let config_dir = &args.config_dir;
 

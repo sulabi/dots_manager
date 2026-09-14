@@ -1,20 +1,9 @@
-mod add;
-mod backup;
-mod init;
-mod install;
-mod remove;
-mod restore;
-
 use anyhow::{Context, Result, anyhow, bail};
 use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
-pub use add::*;
-pub use backup::*;
-pub use init::*;
-pub use install::*;
-pub use remove::*;
-pub use restore::*;
+pub mod config;
+pub mod sys;
 
 pub fn list_dir(path: &Path) -> Result<impl Iterator<Item = PathBuf>> {
     Ok(path
