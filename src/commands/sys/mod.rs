@@ -1,4 +1,9 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
+use appcfg::{Config, ConfigDirectory};
+
+use crate::DotsConfig;
 
 mod etc;
 mod fonts;
@@ -26,17 +31,18 @@ pub enum Command {
 }
 
 #[derive(clap::Args)]
-pub struct GlobalArgs {
-    #[arg(long)]
-    hello: bool,
-}
+pub struct GlobalArgs {}
 
-pub struct CommandArgs {}
+pub struct CommandArgs {
+    dots_directory: PathBuf,
+}
 
 impl Command {
     #[allow(unused)]
-    pub async fn exec(&self, args: GlobalArgs) -> Result<()> {
-        let args = CommandArgs {};
+    pub async fn exec(&self, dots_config: &DotsConfig) -> Result<()> {
+        let args = CommandArgs {
+            dots_directory: dots_config.dots_directory.clone(),
+        };
 
         match self {
             Self::Packages { command } => command.exec(&args).await,

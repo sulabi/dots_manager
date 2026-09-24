@@ -14,13 +14,13 @@ pub struct Restore {
 
 impl Restore {
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
-        let dotfiles = &args.dotfiles;
+        let dot_config = &args.dot_config;
 
-        dotfiles.ensure_dir()?;
+        dot_config.ensure_dir()?;
 
         let restore_file = match self.from_file.clone() {
             Some(f) => f,
-            None => list_dir(dotfiles)?
+            None => list_dir(dot_config)?
                 .filter(|path| path.extension() == Some(OsStr::new("gz")))
                 .max_by_key(|path| {
                     path.metadata()
@@ -30,7 +30,7 @@ impl Restore {
                 .context("No backup file found")?,
         };
 
-        for path in get_dots(dotfiles)? {
+        for path in get_dots(dot_config)? {
             if path.is_dir() && !path.is_symlink() {
                 tokio::fs::remove_dir_all(&path)
                     .await
@@ -48,7 +48,7 @@ impl Restore {
         let mut archive = Archive::new(tar);
 
         archive
-            .unpack(dotfiles)
+            .unpack(dot_config)
             .with_context(|| format!("failed to unpack archive {:?}", restore_file))?;
 
         Ok(())

@@ -13,7 +13,7 @@ pub struct Add {
 impl Add {
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
         let f = self.file.ensure_exists()?;
-        let dotfiles = &args.dotfiles;
+        let dot_config = &args.dot_config;
         let config_dir = &args.config_dir;
 
         let f_name = f.file_name().context("Unable to get file name")?;
@@ -21,7 +21,7 @@ impl Add {
         f.ensure_child(config_dir)?;
 
         // TODO: fix for regular files? idk if works
-        let link = dotfiles.join(f_name);
+        let link = dot_config.join(f_name);
         f.move_dir(link.as_path()).await?;
 
         let target = link.relative_path(config_dir)?;

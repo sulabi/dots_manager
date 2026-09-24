@@ -22,12 +22,12 @@ impl Backup {
     }
 
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
-        let dotfiles = &args.dotfiles;
+        let dot_config = &args.dot_config;
 
         let out_path = if let Some(f) = &self.file {
-            f.ensure_dir()?.ensure_child(dotfiles)?
+            f.ensure_dir()?.ensure_child(dot_config)?
         } else {
-            &dotfiles.join(format!("backup-{}.tar.gz", Backup::get_time()))
+            &dot_config.join(format!("backup-{}.tar.gz", Backup::get_time()))
         };
 
         let tar_gz = File::create(out_path)
@@ -36,7 +36,7 @@ impl Backup {
         let mut tar = tar::Builder::new(enc);
         tar.follow_symlinks(false);
 
-        for path in get_dots(dotfiles)? {
+        for path in get_dots(dot_config)? {
             let file_name = path
                 .file_name()
                 .with_context(|| format!("Couldn't get file name: {:?}", path))?;

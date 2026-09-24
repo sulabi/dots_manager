@@ -13,9 +13,9 @@ pub struct Install {
 
 impl Install {
     async fn install(&self, file: &Path, args: &CommandArgs) -> Result<()> {
-        let dotfiles = &args.dotfiles;
+        let dot_config = &args.dot_config;
         let config_dir = &args.config_dir;
-        let f = file.ensure_dir()?.ensure_child(dotfiles)?;
+        let f = file.ensure_dir()?.ensure_child(dot_config)?;
 
         let target = f.relative_path(config_dir)?;
         let f_name = f.file_name().context("Failed to get file name")?;
@@ -38,7 +38,7 @@ impl Install {
             self.install(f, args).await?
         }
 
-        let files = get_dots(&args.dotfiles)?;
+        let files = get_dots(&args.dot_config)?;
 
         for path in files {
             if path.is_dir() {
