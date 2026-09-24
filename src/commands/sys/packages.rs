@@ -41,7 +41,7 @@ impl Packages {
     }
 
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
-        info!("getting all packages...");
+        println!("Getting all packages...");
 
         let mut packages = Packages::list().await?;
         packages.sort();
@@ -59,9 +59,9 @@ impl Packages {
                 let file = args.dots_directory.join("packages.txt");
                 fs::write(&file, packages.join("\n"))
                     .await
-                    .context("Failed to write packages to packages.txt")?;
+                    .with_context(|| format!("Failed to write packages to {}", file.display()))?;
 
-                info!("Saved packages to {}!", file.display());
+                println!("Saved packages to {}!", file.display());
             }
         }
 

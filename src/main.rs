@@ -1,6 +1,7 @@
 use anyhow::Context;
 use appcfg::{Config, ConfigDirectory, Deserialize, Serialize};
-use log::{info, warn};
+use clap::CommandFactory;
+use log::info;
 use std::path::Path;
 use std::path::PathBuf;
 use tokio::fs;
@@ -26,6 +27,7 @@ enum Command {
         command: sys::Command,
     },
 
+    /// Initialise the dotfiles directory, and the config file if not already created
     Init {
         #[arg(long, default_value_os_t = default_directory())]
         directory: PathBuf,
@@ -42,11 +44,8 @@ fn default_directory() -> PathBuf {
 
 fn fallback_directory() -> PathBuf {
     let home_dir = dirs::home_dir().expect("Failed to get home directory");
-    let directory = home_dir.join("dotfiles");
 
-    warn!("Initializing at home directory: {}", directory.display());
-
-    directory
+    home_dir.join("dotfiles")
 }
 
 #[derive(clap::Parser)]
@@ -78,6 +77,10 @@ async fn init(base: &Path) -> Result<()> {
         .await
         .context("Failed to write packages.txt")?;
 
+    fs::write(base.join("fonts.txt"), "")
+        .await
+        .context("Failed to write packages.txt")?;
+
     Ok(())
 }
 
@@ -93,21 +96,38 @@ async fn main() -> Result<()> {
 
     let config = Config::new(ConfigDirectory::System("dots_manager"))?;
 
-    let dots_config = config.read::<DotsConfig>()?;
+    let dots_config = match config.read::<DotsConfig>() {
+        Ok(config) if config.dots_directory.exists() => config,
+        _ => {
+            eprintln!("No config or dotfiles directory found.\n");
+
+            if !matches!(&options.command, Command::Init { .. }) {
+                let mut cmd = CommandHandler::command();
+                if let Some(init_cmd) = cmd.find_subcommand_mut("init") {
+                    init_cmd.print_help()?;
+                }
+                anyhow::bail!("run `init` first");
+            }
+
+            DotsConfig {
+                dots_directory: PathBuf::new(),
+            }
+        }
+    };
 
     match options.command {
         Command::Config { command } => command.exec(&dots_config).await,
         Command::System { command } => command.exec(&dots_config).await,
 
         Command::Init { directory } => {
-            info!("Creating init at {}", directory.display());
+            info!("Creating init at {}...", directory.display());
 
             init(&directory).await?;
 
             config.write(&DotsConfig {
                 dots_directory: directory,
             })?;
-
+            info!("Done! You may run the other commands now!");
             Ok(())
         }
     }
