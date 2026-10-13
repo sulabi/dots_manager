@@ -4,7 +4,6 @@ use anyhow::{Context, Result};
 
 mod add;
 mod backup;
-mod init;
 mod install;
 mod remove;
 mod restore;

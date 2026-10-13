@@ -1,11 +1,9 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use appcfg::{Config, ConfigDirectory};
 
 use crate::DotsConfig;
 
-mod etc;
 mod fonts;
 mod packages;
 mod services;
@@ -23,10 +21,6 @@ pub enum Command {
     Services {
         #[command(subcommand)]
         command: services::Services,
-    },
-    Etc {
-        #[command(subcommand)]
-        command: etc::Etc,
     },
 }
 
@@ -47,7 +41,6 @@ impl Command {
         match self {
             Self::Packages { command } => command.exec(&args).await,
             Self::Fonts { command } => command.exec(&args).await,
-            Self::Etc { command } => command.exec(&args).await,
             Self::Services { command } => command.exec(&args).await,
         }
     }

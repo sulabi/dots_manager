@@ -1,6 +1,6 @@
 use anyhow::Context;
-use appcfg::{Config, ConfigDirectory, Deserialize, Serialize};
 use clap::CommandFactory;
+use configfs::{Config, ConfigDirectory, Deserialize, Serialize};
 use log::info;
 use std::path::Path;
 use std::path::PathBuf;
