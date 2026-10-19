@@ -14,7 +14,7 @@ pub struct Install {
 impl Install {
     async fn install(&self, file: &Path, args: &CommandArgs) -> Result<()> {
         let dot_config = &args.dot_config;
-        let config_dir = &args.config_dir;
+        let config_dir = &args.dotfiles_dir;
         let f = file.ensure_dir()?.ensure_child(dot_config)?;
 
         let target = f.relative_path(config_dir)?;

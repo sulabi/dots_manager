@@ -14,7 +14,7 @@ impl Add {
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
         let f = self.file.ensure_exists()?;
         let dot_config = &args.dot_config;
-        let config_dir = &args.config_dir;
+        let config_dir = &args.dotfiles_dir;
 
         let f_name = f.file_name().context("Unable to get file name")?;
 

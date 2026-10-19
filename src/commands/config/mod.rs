@@ -26,7 +26,7 @@ pub enum Command {
 
 pub struct CommandArgs {
     dot_config: PathBuf,
-    config_dir: PathBuf,
+    dotfiles_dir: PathBuf,
 }
 
 impl Command {
@@ -34,7 +34,7 @@ impl Command {
         let config_dir = dirs::config_dir().context("Failed to get config directory")?;
         let args = CommandArgs {
             dot_config: config.dots_directory.join(".config"),
-            config_dir,
+            dotfiles_dir: config_dir,
         };
 
         match self {

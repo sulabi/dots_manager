@@ -20,7 +20,7 @@ impl Remove {
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
         let f = &self.file.ensure_dir()?;
 
-        let config_dir = &args.config_dir;
+        let config_dir = &args.dotfiles_dir;
         let config_file = config_dir.join(f);
         config_file.ensure_dir()?.ensure_symlink()?;
 

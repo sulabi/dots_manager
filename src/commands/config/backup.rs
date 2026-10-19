@@ -1,13 +1,10 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use chrono::format::{DelayedFormat, StrftimeItems};
 use flate2::{Compression, write::GzEncoder};
-use std::fs::File;
-use std::path::PathBuf;
-
-use crate::commands::PathValidate;
-use crate::commands::get_dots;
+use std::path::{Path, PathBuf};
 
 use super::CommandArgs;
+use crate::commands::{PathValidate, get_dots};
 
 #[derive(clap::Parser)]
 pub struct Backup {
@@ -15,40 +12,64 @@ pub struct Backup {
     file: Option<PathBuf>,
 }
 
-#[allow(unused_variables)]
 impl Backup {
     fn get_time() -> DelayedFormat<StrftimeItems<'static>> {
-        chrono::Local::now().format("%d%m%Y-%H%M%S")
+        chrono::Local::now().format("%Y%m%d-%H%M%S-%f")
     }
 
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
-        let dot_config = &args.dot_config;
+        args.dot_config.ensure_dir()?;
 
-        let out_path = if let Some(f) = &self.file {
-            f.ensure_dir()?.ensure_child(dot_config)?
-        } else {
-            &dot_config.join(format!("backup-{}.tar.gz", Backup::get_time()))
-        };
+        let out_path = self.file.clone().unwrap_or_else(|| {
+            args.dot_config
+                .join(format!("backup-{}.tar.gz", Self::get_time()))
+        });
 
-        let tar_gz = File::create(out_path)
-            .with_context(|| format!("Failed to create backup file: {}", out_path.display()))?;
-        let enc = GzEncoder::new(tar_gz, Compression::default());
-        let mut tar = tar::Builder::new(enc);
+        let parent = out_path
+            .parent()
+            .filter(|p| !p.as_os_str().is_empty())
+            .unwrap_or_else(|| Path::new("."))
+            .ensure_dir()?
+            .canonicalize()
+            .context("Unable to resolve backup destination directory")?;
+
+        let destination = parent.join(out_path.file_name().context("Missing backup file name")?);
+
+        let source = args.dot_config.canonicalize()?;
+
+        if parent.starts_with(&source) && parent != source {
+            bail!("Backup destination cannot be inside a managed config directory");
+        }
+
+        let mut output = tempfile::NamedTempFile::new_in(&parent)?;
+        let temporary_path = output.path().to_path_buf();
+
+        let mut tar =
+            tar::Builder::new(GzEncoder::new(output.as_file_mut(), Compression::default()));
         tar.follow_symlinks(false);
 
-        for path in get_dots(dot_config)? {
-            let file_name = path
-                .file_name()
-                .with_context(|| format!("Couldn't get file name: {:?}", path))?;
+        for path in get_dots(&args.dot_config)? {
+            let name = path.file_name().context("Missing config file name")?;
 
-            if path.is_dir() {
-                tar.append_dir_all(file_name, &path)?;
+            if path.canonicalize().ok().as_ref() == Some(&temporary_path) {
+                continue;
+            }
+
+            if path.is_dir() && !path.is_symlink() {
+                tar.append_dir_all(name, &path)?;
             } else {
-                tar.append_path_with_name(&path, file_name)?;
+                tar.append_path_with_name(&path, name)?;
             }
         }
 
-        tar.finish()?;
+        tar.into_inner()?.finish()?.sync_all()?;
+
+        output.persist_noclobber(&destination).with_context(|| {
+            format!(
+                "Failed to save backup to {} (destination must not exist)",
+                destination.display()
+            )
+        })?;
 
         Ok(())
     }
