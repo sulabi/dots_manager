@@ -12,11 +12,11 @@ use crate::DotsConfig;
 
 #[derive(clap::Subcommand)]
 pub enum Command {
-    /// adds a config dir to dotfiles
+    /// adds a config file or directory to dotfiles
     Add(add::Add),
-    /// removes a config dir from dotfiles or config
+    /// removes installed config links, optionally deleting their dotfiles
     Remove(remove::Remove),
-    /// symlinks current dotfiles folders into config
+    /// symlinks current dotfiles into config
     Install(install::Install),
     /// backs up current dotfiles folder into a tarball
     Backup(backup::Backup),

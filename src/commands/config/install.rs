@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use std::path::{Path, PathBuf};
 
 use crate::commands::{PathExt, PathValidate, get_dots};
@@ -13,43 +13,52 @@ pub struct Install {
 
 impl Install {
     async fn install(&self, file: &Path, args: &CommandArgs) -> Result<()> {
-        let dot_config = &args.dot_config;
-        let config_dir = &args.dotfiles_dir;
-        let f = file.ensure_dir()?.ensure_child(dot_config)?;
+        let dot_config = args.dot_config.ensure_dir()?;
+        let config_dir = args.dotfiles_dir.ensure_dir()?;
+        let file = file.ensure_exists()?.ensure_child(dot_config)?;
 
-        let target = f.relative_path(config_dir)?;
-        let f_name = f.file_name().context("Failed to get file name")?;
+        let target = file.relative_path(config_dir)?;
+        let name = file.file_name().context("Failed to get file name")?;
+        let link = config_dir.join(name);
 
-        let link = config_dir.join(f_name);
+        if link.symlink_metadata().is_ok() {
+            if link.is_symlink() && link.link_matches(file)? {
+                return Ok(());
+            }
 
-        if !link.is_symlink() {
-            tokio::fs::symlink(&target, &link)
-                .await
-                .with_context(|| format!("Symlink error on {:?} to {:?}", target, link))?;
+            bail!(
+                "{} already exists and does not link to {}",
+                link.display(),
+                file.display()
+            );
         }
+
+        tokio::fs::symlink(&target, &link).await.with_context(|| {
+            format!(
+                "Failed to create symlink {} to {}",
+                link.display(),
+                target.display()
+            )
+        })?;
 
         Ok(())
     }
 
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
-        if let Some(f) = &self.file {
-            let f = f.ensure_dir()?;
+        if let Some(file) = &self.file {
+            let file = file.selected_path(&args.dot_config)?;
 
-            self.install(f, args).await?
+            return self.install(&file, args).await;
         }
 
-        let files = get_dots(&args.dot_config)?;
+        for path in get_dots(&args.dot_config)? {
+            // TODO: make a better terminal output
+            println!(
+                "installing -> {:?}",
+                path.file_name().context("Failed to get file name")?
+            );
 
-        for path in files {
-            if path.is_dir() {
-                // TODO: make a better terminal output
-                println!(
-                    "installing -> {:?}",
-                    path.file_name().context("Failed to get file name")?
-                );
-
-                self.install(&path, args).await?
-            }
+            self.install(&path, args).await?;
         }
 
         Ok(())

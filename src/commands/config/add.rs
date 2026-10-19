@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use std::path::PathBuf;
 
 use super::CommandArgs;
@@ -12,24 +12,35 @@ pub struct Add {
 
 impl Add {
     pub async fn exec(&self, args: &CommandArgs) -> Result<()> {
-        let f = self.file.ensure_exists()?;
-        let dot_config = &args.dot_config;
-        let config_dir = &args.dotfiles_dir;
+        let dot_config = args.dot_config.ensure_dir()?;
+        let config_dir = args.dotfiles_dir.ensure_dir()?;
+        let file = self.file.selected_path(config_dir)?;
 
-        let f_name = f.file_name().context("Unable to get file name")?;
+        file.ensure_exists()?.ensure_child(config_dir)?;
 
-        f.ensure_child(config_dir)?;
+        if file.is_symlink() {
+            bail!("{} is already a symlink", file.display());
+        }
 
-        // TODO: fix for regular files? idk if works
-        let link = dot_config.join(f_name);
-        f.move_dir(link.as_path()).await?;
+        let name = file.file_name().context("Unable to get file name")?;
+        let destination = dot_config.join(name);
 
-        let target = link.relative_path(config_dir)?;
-        let link = config_dir.join(f_name);
+        if destination.symlink_metadata().is_ok() {
+            bail!("{} already exists in dotfiles", destination.display());
+        }
 
-        tokio::fs::symlink(target, link)
-            .await
-            .context("Symlink err")?;
+        let target = dot_config.relative_path(config_dir)?.join(name);
+
+        file.move_dir(&destination).await?;
+
+        if let Err(error) = tokio::fs::symlink(&target, &file).await {
+            destination
+                .move_dir(&file)
+                .await
+                .with_context(|| format!("Failed to create symlink: {error}; failed to return config to {}. Config remains at {}", file.display(), destination.display()))?;
+
+            return Err(error).context("Failed to create symlink; original config restored");
+        }
 
         Ok(())
     }
